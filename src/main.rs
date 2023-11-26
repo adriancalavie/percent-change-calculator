@@ -1,36 +1,39 @@
 mod args_processing;
-use args_processing as argp;
+mod program_options;
+mod running;
+mod utils;
+
+use program_options::ProgramOptions;
+use running::{run_menu, run_with_args};
 use std::env;
-
-
-
-fn percent_change(from: f64, to: f64) -> f64 {
-    (to - from) / from * 100.0
-}
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    let processed_args = argp::process_args(args.clone());
 
-    if !processed_args.is_valid {
-        println!(
-            "Invalid command: Invalid strucutre. \nUsage: percent_change from <number> to <number>"
-        );
-        return;
+    let program_opts = if args.len() == 1 {
+        run_menu()
+    } else {
+        run_with_args(args)
+    };
+
+    match program_opts {
+        Ok(opts) => display_change(opts),
+        Err(ref message) => handle_err(message),
     }
+}
 
-    if processed_args.from.is_none() {
-        println!("Invalid command: Usage: \"from\" couldn't be parsed. \nUsage: percent_change from <number> to <number>");
-        return;
-    }
+fn compute_percent_change(from: f64, to: f64) -> f64 {
+    (to - from) / from * 100.0
+}
 
-    if processed_args.to.is_none() {
-        println!("Invalid command: Usage: \"to\" couldn't be parsed. \nUsage: percent_change from <number> to <number>");
-        return;
-    }
+fn display_change(opts: ProgramOptions) {
+    println!(
+        "Percent change is {:.*}%",
+        opts.precision,
+        compute_percent_change(opts.from, opts.to)
+    );
+}
 
-    let from = processed_args.from.unwrap();
-    let to = processed_args.to.unwrap();
-
-    println!("Percent change is {}%", percent_change(from, to));
+fn handle_err(message: &str) {
+    eprintln!("{}", message);
 }
